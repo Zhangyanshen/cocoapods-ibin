@@ -43,14 +43,19 @@ module Pod
 
         def run
           @spec = Specification.from_file(spec_file)
+          # 创建Xcode工程
           generate_project
+          # 构建静态framework
           build_static_framework
+          # 压缩静态framework
           zip_static_framework if @zip
+          # 清理workspace
           clean_workspace if @clean
         end
 
         private
 
+        # 创建Xcode工程
         def generate_project
           Podfile.execute_with_bin_plugin do
             Podfile.execute_with_allow_prerelease(@allow_prerelease) do

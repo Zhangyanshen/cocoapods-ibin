@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module CBin
-  VERSION = '0.1.30'
+  VERSION = '0.1.31'
 end
 
 module Pod

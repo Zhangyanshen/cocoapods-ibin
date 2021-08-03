@@ -2,6 +2,8 @@
 
 # copy from https://github.com/CocoaPods/cocoapods-packager
 
+# 创建framework
+
 module CBin
   class Framework
     attr_reader :headers_path

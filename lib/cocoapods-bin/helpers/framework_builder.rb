@@ -2,6 +2,8 @@
 
 # copy from https://github.com/CocoaPods/cocoapods-packager
 
+# 构建framework
+
 require 'cocoapods-bin/helpers/framework.rb'
 require 'English'
 
@@ -24,6 +26,8 @@ module CBin
 
           build_sim_libraries(defines)
           output = framework.versions_path + Pathname.new(@spec.name)
+          UI.info "#{output}".red
+          
           build_static_library_for_ios(output)
 
           copy_headers
@@ -91,7 +95,7 @@ module CBin
       end
 
       def copy_resources
-        bundles = Dir.glob('./build/*.bundle')
+        bundles = Dir.glob('./Pods/build/*.bundle')
 
         bundle_names = [@spec, *@spec.recursive_subspecs].flat_map do |spec|
           consumer = spec.consumer(@platform)
@@ -132,10 +136,13 @@ module CBin
 
       def build_static_library_for_ios(output)
         UI.message "Building ios libraries with archs #{ios_architectures}"
-        static_libs = static_libs_in_sandbox('build') + static_libs_in_sandbox('build-simulator') + @vendored_libraries
+        static_libs = static_libs_in_sandbox('./Pods/build') + static_libs_in_sandbox('./Pods/build-simulator') + @vendored_libraries
+        UI.info "#{static_libs}".blue
         libs = ios_architectures.map do |arch|
           library = "build/package-#{arch}.a"
-          `libtool -arch_only #{arch} -static -o #{library} #{static_libs.join(' ')}`
+          command = "libtool -arch_only #{arch} -static -o #{library} #{static_libs.join(' ')}"
+          puts "#{library}:#{command}"
+          `#{command}`
           library
         end
 
@@ -147,7 +154,7 @@ module CBin
       end
 
       def ios_architectures
-        archs = %w[x86_64 arm64 armv7 armv7s i386]
+        archs = %w[x86_64 arm64]
         @vendored_libraries.each do |library|
           archs = `lipo -info #{library}`.split & archs
         end
@@ -173,9 +180,14 @@ module CBin
         end
       end
 
+      # 执行xcodebuild打包静态framework
       def xcodebuild(defines = '', args = '', build_dir = 'build')
-        command = "xcodebuild #{defines} #{args} CONFIGURATION_BUILD_DIR=#{build_dir} clean build -configuration Release -target #{target_name} -project ./Pods.xcodeproj 2>&1"
+        UI.info '开始编译framework'.green
+        command = "xcodebuild #{defines} #{args} CONFIGURATION_BUILD_DIR=#{build_dir} clean build -configuration Release -target #{target_name} -project ./Pods/Pods.xcodeproj 2>&1"
         output = `#{command}`.lines.to_a
+        UI.info '---------------------'
+        UI.info "#{command}".green
+        UI.info '---------------------'
 
         if $CHILD_STATUS.exitstatus != 0
           raise <<~EOF
